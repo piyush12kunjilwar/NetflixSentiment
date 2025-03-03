@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
+import json
 
 from utils.data_generator import generate_mock_data
 from utils.sentiment_analyzer import analyze_sentiment, get_sentiment_metrics
+from utils.ai_insights import generate_content_insights, get_emotion_recommendations
 from components.filters import create_filters
 from components.visualizations import (
     create_sentiment_trend,
@@ -66,6 +68,48 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+def display_ai_insights(metrics):
+    """Display AI-generated insights and recommendations."""
+    st.markdown("<h2>🤖 AI-Powered Insights</h2>", unsafe_allow_html=True)
+
+    with st.spinner("Generating AI insights..."):
+        insights = generate_content_insights(metrics)
+
+        if insights['success']:
+            try:
+                data = json.loads(insights['insights'])
+
+                # Display analysis
+                st.markdown("""
+                    <div style='background-color: #1F1F1F; padding: 20px; border-radius: 10px; margin: 10px 0;'>
+                        <h3 style='color: #E50914; margin-bottom: 10px;'>Trend Analysis</h3>
+                        <p style='color: #FFFFFF;'>{}</p>
+                    </div>
+                """.format(data['analysis']), unsafe_allow_html=True)
+
+                # Display recommendations in columns
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.markdown("""
+                        <div style='background-color: #1F1F1F; padding: 20px; border-radius: 10px; height: 100%;'>
+                            <h3 style='color: #E50914; margin-bottom: 10px;'>Marketing Recommendations</h3>
+                            <p style='color: #FFFFFF;'>{}</p>
+                        </div>
+                    """.format(data['recommendations']), unsafe_allow_html=True)
+
+                with col2:
+                    st.markdown("""
+                        <div style='background-color: #1F1F1F; padding: 20px; border-radius: 10px; height: 100%;'>
+                            <h3 style='color: #E50914; margin-bottom: 10px;'>Suggested Actions</h3>
+                            <p style='color: #FFFFFF;'>{}</p>
+                        </div>
+                    """.format(data['actions']), unsafe_allow_html=True)
+            except json.JSONDecodeError:
+                st.error("Error decoding AI insights JSON.")
+        else:
+            st.error("Failed to generate AI insights. Please try again later.")
 
 def main():
     # Header with animation
@@ -133,6 +177,9 @@ def main():
                         label="Negative Sentiment"
                     ), unsafe_allow_html=True)
 
+            # Add AI Insights section
+            display_ai_insights(metrics)
+
             # Create visualizations with enhanced styling
             st.markdown("<h2>Sentiment Analysis Insights</h2>", unsafe_allow_html=True)
 
@@ -168,7 +215,7 @@ def main():
             )
 
             # Sample comments with enhanced styling
-            st.markdown("<h2>Recent Audience Reactions</h2>", unsafe_allow_html=True)
+            st.markdown("<h2>Recent Audience Reactions & Recommendations</h2>", unsafe_allow_html=True)
             comment_sample = filtered_df.sort_values(
                 'timestamp', ascending=False
             )[['timestamp', 'show', 'comment', 'sentiment']].head(5)
@@ -179,6 +226,26 @@ def main():
                     'Neutral': '#FFB13B',   # Warm yellow
                     'Negative': '#E50914'    # Netflix red
                 }[row['sentiment']]
+
+                # Get AI recommendations for the comment
+                recommendations = get_emotion_recommendations(row['comment'])
+
+                rec_html = ""
+                if recommendations['success']:
+                    try:
+                        rec_data = json.loads(recommendations['recommendations'])
+                        rec_html = f"""
+                            <div style='margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);'>
+                                <span style='color: #E50914;'>Primary Emotion:</span> 
+                                <span style='color: #FFFFFF;'>{rec_data['emotion']}</span><br>
+                                <span style='color: #E50914;'>Recommended Shows:</span>
+                                <ul style='color: #FFFFFF; margin: 5px 0;'>
+                                    {"".join(f"<li>{rec}</li>" for rec in rec_data['recommendations'])}
+                                </ul>
+                            </div>
+                        """
+                    except (KeyError, json.JSONDecodeError):
+                        st.error("Error processing AI recommendations.")
 
                 st.markdown(f"""
                 <div style='
@@ -194,6 +261,7 @@ def main():
                         <span style='color: #666666;'>{row['timestamp'].strftime('%Y-%m-%d %H:%M')}</span>
                     </div>
                     <p style='color: #FFFFFF; margin: 0;'>{row['comment']}</p>
+                    {rec_html}
                 </div>
                 """, unsafe_allow_html=True)
 
