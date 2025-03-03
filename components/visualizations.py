@@ -8,7 +8,6 @@ DARK_TEMPLATE = {
         'plot_bgcolor': '#141414',
         'paper_bgcolor': '#141414',
         'font': {'color': '#FFFFFF'},
-        'title': {'font': {'color': '#FFFFFF', 'size': 24}},
         'xaxis': {
             'gridcolor': '#1F1F1F',
             'linecolor': '#1F1F1F',
@@ -25,7 +24,6 @@ DARK_TEMPLATE = {
 
 def create_sentiment_trend(df):
     """Create enhanced sentiment trend visualization."""
-
     daily_sentiment = df.groupby(
         [df['timestamp'].dt.date, 'sentiment']
     ).size().unstack(fill_value=0)
@@ -55,20 +53,20 @@ def create_sentiment_trend(df):
                 hovertemplate="%{y:.1f}%<extra></extra>"
             ))
 
-    fig.update_layout(
-        title='Sentiment Trends Over Time',
-        xaxis_title='Date',
-        yaxis_title='Percentage',
-        hovermode='x unified',
-        showlegend=True,
-        **DARK_TEMPLATE['layout']
-    )
+    layout = {
+        **DARK_TEMPLATE['layout'],
+        'title': {'text': 'Sentiment Trends Over Time', 'font': {'color': '#FFFFFF', 'size': 24}},
+        'xaxis_title': 'Date',
+        'yaxis_title': 'Percentage',
+        'hovermode': 'x unified',
+        'showlegend': True
+    }
 
+    fig.update_layout(**layout)
     return fig
 
 def create_show_sentiment(df):
     """Create enhanced show-wise sentiment distribution."""
-
     show_sentiment = df.groupby(['show', 'sentiment']).size().unstack(fill_value=0)
     show_sentiment_pct = show_sentiment.div(show_sentiment.sum(axis=1), axis=0) * 100
 
@@ -85,20 +83,20 @@ def create_show_sentiment(df):
             hovertemplate="%{y:.1f}%<extra></extra>"
         ))
 
-    fig.update_layout(
-        title='Sentiment Distribution by Show',
-        barmode='stack',
-        xaxis_title='Show',
-        yaxis_title='Percentage',
-        showlegend=True,
-        **DARK_TEMPLATE['layout']
-    )
+    layout = {
+        **DARK_TEMPLATE['layout'],
+        'title': {'text': 'Sentiment Distribution by Show', 'font': {'color': '#FFFFFF', 'size': 24}},
+        'barmode': 'stack',
+        'xaxis_title': 'Show',
+        'yaxis_title': 'Percentage',
+        'showlegend': True
+    }
 
+    fig.update_layout(**layout)
     return fig
 
 def create_demographic_insights(df):
     """Create enhanced demographic insights visualization."""
-
     age_bins = [0, 25, 35, 45, 55, 100]
     age_labels = ['18-25', '26-35', '36-45', '46-55', '55+']
 
@@ -125,20 +123,20 @@ def create_demographic_insights(df):
             hovertemplate="%{y:.1f}%<extra></extra>"
         ))
 
-    fig.update_layout(
-        title='Sentiment Distribution by Age Group',
-        barmode='group',
-        xaxis_title='Age Group',
-        yaxis_title='Percentage',
-        showlegend=True,
-        **DARK_TEMPLATE['layout']
-    )
+    layout = {
+        **DARK_TEMPLATE['layout'],
+        'title': {'text': 'Sentiment Distribution by Age Group', 'font': {'color': '#FFFFFF', 'size': 24}},
+        'barmode': 'group',
+        'xaxis_title': 'Age Group',
+        'yaxis_title': 'Percentage',
+        'showlegend': True
+    }
 
+    fig.update_layout(**layout)
     return fig
 
 def create_region_sentiment(df):
     """Create enhanced region-wise sentiment visualization."""
-
     region_sentiment = df.groupby(['user_region', 'sentiment']).size().unstack(fill_value=0)
     region_total = region_sentiment.sum(axis=1)
 
@@ -157,10 +155,11 @@ def create_region_sentiment(df):
                       "Share: %{percent}<extra></extra>"
     )])
 
-    fig.update_layout(
-        title='Regional Distribution of Comments',
-        annotations=[dict(text='Global<br>Reach', x=0.5, y=0.5, font_size=20, showarrow=False)],
-        **DARK_TEMPLATE['layout']
-    )
+    layout = {
+        **DARK_TEMPLATE['layout'],
+        'title': {'text': 'Regional Distribution of Comments', 'font': {'color': '#FFFFFF', 'size': 24}},
+        'annotations': [dict(text='Global<br>Reach', x=0.5, y=0.5, font_size=20, showarrow=False)]
+    }
 
+    fig.update_layout(**layout)
     return fig
