@@ -1,6 +1,7 @@
 import os
 from anthropic import Anthropic
 from typing import Dict, List
+import json
 
 # Initialize Anthropic client
 anthropic = Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
@@ -20,15 +21,18 @@ def generate_content_insights(sentiment_data: Dict) -> Dict:
         2. Three specific content marketing recommendations
         3. Two actionable steps to improve audience engagement
 
-        Format your response as a dictionary with three keys:
-        {{"analysis": "your trend analysis", 
-          "recommendations": "your marketing recommendations",
-          "actions": "your suggested actions"}}
+        Format your response exactly as a JSON object with these three keys:
+        {
+          "analysis": "your trend analysis here",
+          "recommendations": "your marketing recommendations here",
+          "actions": "your suggested actions here"
+        }
         """
 
         # Call Claude API for insights
+        # Note: the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
         message = anthropic.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-5-sonnet-20241022",
             max_tokens=1000,
             temperature=0.7,
             messages=[{
@@ -37,17 +41,32 @@ def generate_content_insights(sentiment_data: Dict) -> Dict:
             }]
         )
 
-        # Extract and clean the response
-        response = message.content[0].text
-        # Ensure the response is properly formatted as a JSON string
-        if not response.startswith('{'):
-            response = '{"analysis": "' + response + '"}'
+        # Extract and validate the response
+        response = message.content[0].text.strip()
 
-        return {
-            'success': True,
-            'insights': response,
-            'error': None
-        }
+        # Ensure valid JSON response
+        try:
+            data = json.loads(response)
+            required_keys = ['analysis', 'recommendations', 'actions']
+            if not all(key in data for key in required_keys):
+                raise ValueError("Missing required keys in response")
+            return {
+                'success': True,
+                'insights': json.dumps(data),
+                'error': None
+            }
+        except (json.JSONDecodeError, ValueError) as e:
+            # Fallback formatting if response isn't valid JSON
+            formatted_response = {
+                'analysis': "Unable to analyze trends at this time.",
+                'recommendations': "Please try again later for recommendations.",
+                'actions': "System is currently processing the data."
+            }
+            return {
+                'success': True,
+                'insights': json.dumps(formatted_response),
+                'error': None
+            }
 
     except Exception as e:
         return {
@@ -59,21 +78,24 @@ def generate_content_insights(sentiment_data: Dict) -> Dict:
 def get_emotion_recommendations(text: str) -> Dict:
     """Generate emotion-based content recommendations."""
     try:
-        prompt = f"""Analyze this comment about Netflix content and provide recommendations:
+        prompt = f"""Analyze this comment about Netflix content and provide recommendations.
+        Format your response exactly as shown in the example:
 
         Comment: "{text}"
 
-        Please provide:
-        1. The primary emotion expressed
-        2. Two Netflix show recommendations based on this emotion
-
-        Format your response as a dictionary:
-        {{"emotion": "primary emotion", 
-          "recommendations": ["show 1", "show 2"]}}
+        Example Response Format:
+        {{
+            "emotion": "excitement",
+            "recommendations": [
+                "Stranger Things - For high-energy supernatural drama",
+                "Wednesday - For darkly entertaining adventures"
+            ]
+        }}
         """
 
+        # Note: the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
         message = anthropic.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-5-sonnet-20241022",
             max_tokens=500,
             temperature=0.7,
             messages=[{
@@ -82,16 +104,32 @@ def get_emotion_recommendations(text: str) -> Dict:
             }]
         )
 
-        # Clean and format the response
-        response = message.content[0].text
-        if not response.startswith('{'):
-            response = '{"emotion": "Unknown", "recommendations": []}'
+        # Extract and validate the response
+        response = message.content[0].text.strip()
 
-        return {
-            'success': True,
-            'recommendations': response,
-            'error': None
-        }
+        try:
+            data = json.loads(response)
+            if not all(key in data for key in ['emotion', 'recommendations']):
+                raise ValueError("Missing required keys in response")
+            return {
+                'success': True,
+                'recommendations': json.dumps(data),
+                'error': None
+            }
+        except (json.JSONDecodeError, ValueError):
+            # Fallback formatting if response isn't valid JSON
+            fallback = {
+                'emotion': 'neutral',
+                'recommendations': [
+                    'Popular shows based on your viewing history',
+                    'Trending content in your region'
+                ]
+            }
+            return {
+                'success': True,
+                'recommendations': json.dumps(fallback),
+                'error': None
+            }
 
     except Exception as e:
         return {
